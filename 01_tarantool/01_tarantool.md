@@ -636,7 +636,7 @@ server:start()
 
 [https://www.tarantool.io/en/doc/latest/reference/reference_lua/box/](https://www.tarantool.io/en/doc/latest/reference/reference_lua/box/)
 
-*** users.lua ***
+**users.lua**
 
 ```lua
 local clock = require('clock')
@@ -729,7 +729,7 @@ return {
 }
 ```
 
-*** init.lua ***
+**init.lua**
 
 ```lua
 local json = require('json')
@@ -803,6 +803,14 @@ server:set_router(router)
 server:start()
 ```
 
+```bash
+curl -X POST -d '{"email": "test@mail.ru", "name": "Ivan", "password": "mypass"}' http://localhost:9000/add
+```
+
+```bash
+curl "http://localhost:9000/login?email=test@mail.ru&name=test&password=mypass"
+```
+
 ### Fibers
 
 [https://www.tarantool.io/en/doc/latest/reference/reference_lua/fiber/](https://www.tarantool.io/en/doc/latest/reference/reference_lua/fiber/)
@@ -812,5 +820,82 @@ server:start()
 - Также файберы неявно передают управление на некоторых функциях, например, ввода-вывода
 - Если файбер не передает управление, то остальные файберы не будут ничего делать
 
+**users.lua**
 
+```lua
+local validation = require('validation')
 
+...
+
+local function add(email, name, password)
+    ...
+
+    user_info = user_info:tomap({ names_only = true })
+    user_info.password = nil
+
+    validation.process(user_info) -- асинхронная задача подтверждения email
+
+    return user_info
+end
+```
+
+**validation.lua**
+
+```lua
+local fiber = require('fiber')
+
+local function get_space()
+    local space = box.space.validation_queue
+    if space ~= nil then
+        return space
+    end
+
+    box.begin()
+
+    space = box.schema.space.create('validation_queue')
+
+    space:format({
+        { name = 'email',   type = 'string',    is_nullable = false }
+    })
+
+    space:create_index('email', {
+        type = 'HASH',
+        unique = true,
+        if_not_exists = true,
+        parts = {{ field = 'email', type = 'string', collation = 'unicode_ci' }}
+    })
+
+    box.commit()
+
+    return space
+end
+
+local function start_worker(has_job)
+    while true do
+        local space = get_space()
+
+        for _, email in get_space():pairs() do
+            print(email)
+            space:delete(email)
+        end
+
+        has_job:wait()
+    end
+end
+
+local has_job = fiber.cond()
+
+fiber.create(start_worker, has_job)
+
+local function process(user_info)
+    local space = get_space()
+    space:insert({ user_info.email })
+    has_job:signal()
+end
+
+return {
+    process = process
+}
+```
+
+EOF
