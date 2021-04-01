@@ -225,6 +225,60 @@ box.cfg({
 С точки зрения же системы на каждое соединение у нас порождается поток (thread).
 Для источника этот поток называется relay, для приемника - applier.
 
+#### Конфликты репликации
+
+Попробуем сделать следующие шаги:
+
+- Отключить репликацию между инстансами;
+- На каждом из инстансов сделаем insert тапла с одинаковым ключом;
+- Вернем репликацию обратно.
+
+Ожидается, что мы увидим следующее сообщение в логах:
+```
+2021-04-01 21:48:27.760 [3242] main/130/applier/replicator@127.0.0.1:3301 applier.cc:289 E> error applying row: {type: 'INSERT', replica_id: 1, lsn: 14, space_id: 512, index_id: 0, tuple: [4, 4, 4]}
+2021-04-01 21:48:27.760 [3242] main/130/applier/replicator@127.0.0.1:3301 I> can't read row
+2021-04-01 21:48:27.760 [3242] main/130/applier/replicator@127.0.0.1:3301 memtx_tree.cc:779 E> ER_TUPLE_FOUND: Duplicate key exists in unique index 'pk' in space 'test'
+2021-04-01 21:48:27.760 [3242] main/103/init.lua C> failed to synchronize with 1 out of 2 replicas
+```
+
+И в `box.info.replication`
+```
+tarantool> box.info.replication
+---
+- 1:
+    id: 1
+    uuid: 8e64c535-9368-4b8e-83a1-5496389b495a
+    lsn: 13
+    upstream:
+      peer: replicator@127.0.0.1:3301
+      lag: 28.781993865967
+      status: stopped
+      idle: 18.933447999996
+      message: Duplicate key exists in unique index 'pk' in space 'test'
+    downstream:
+      status: stopped
+      message: 'unexpected EOF when reading from socket, called on fd 16, aka [::ffff:127.0.0.1]:3302,
+        peer of [::ffff:127.0.0.1]:'
+      system_message: Broken pipe
+  2:
+    id: 2
+    uuid: 3285c1c2-11d8-4af9-98aa-007efcfa3fbf
+    lsn: 1
+...
+```
+
+Так и выглядят конфликты репликации.
+И это дает небольшое представление о том, как именно репликация работает.
+Тарантул реплицирует отдельные операции над таплами - insert, replace, update.
+И в данном случае после того, как был сделан один апдейт на инстансе,
+на него реплицируется другой - это приводит к ошибке - insert возможен лишь если такого
+первичного ключа не существует.
+
+Как решать эту проблему?
+
+- Использовать операции, которые не приводят к конфликтам - replace вместо insert;
+- Использовать before_replace триггер для решения конфликта.
+
 ### Шардинг
 ![image](https://user-images.githubusercontent.com/8830475/109938534-30043500-7ce1-11eb-8f24-88db55f4c3cc.png)
 
