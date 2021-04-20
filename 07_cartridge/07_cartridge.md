@@ -38,6 +38,17 @@ Tarantool является платформой для написания сер
 
 ![image](https://user-images.githubusercontent.com/8830475/110234778-7ce44780-7f3d-11eb-94d1-5006ce00c247.png)
 
+Установить Tarantool Cartridge можно с помощью `tarantoolctl`:
+
+```bash
+tarantoolctl rocks install cratridge 2.5.1
+```
+
+Рекомендуется явно указывать желаемую версию т.к. иначе
+будет установлена версия с `master` ветки репозитория.
+При этом все зависимости (в том числе и WebUI) будут устанавливаться
+на Вашем компьютере.
+
 ### Пререквизиты
 
 Нам понадобится приложение [cartridge-cli](https://github.com/tarantool/cartridge-cli).
@@ -298,3 +309,8 @@ Stateful failover не дает защиты от проблемы split-brain -
 Да, с помощью него можно всё это организовать.
 При этом данная функциональность достаточно новая - в ней всё ещё есть недоделки,
 она не будет работать со старыми версиями, добавить в `Cartridge` её просто не успели.
+
+### Домашнее задание
+
+Переписать приложение из [5](/05_replication_and_sharding/05_replication_and_sharding.md) домашнего задания
+на [Tarantool Cartridge](https://github.com/tarantool/cartridge).
