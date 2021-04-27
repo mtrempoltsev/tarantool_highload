@@ -1,0 +1,19 @@
+---
+
+- name: Configure machines
+  gather_facts: false
+  become: true
+  become_user: root
+  hosts: all
+  tasks:
+    - name: Install unzip
+      yum:
+        name: unzip
+        state: latest
+
+    - name: Place some file
+      copy:
+        content: |
+          Hi, I am here!
+        dest: '/tmp/hello.txt'
+        mode: '644'
