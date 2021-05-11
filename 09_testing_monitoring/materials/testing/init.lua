@@ -15,9 +15,11 @@ local function init()
         {name = 'group', type = 'string'},
     })
     box.space.customer:create_index('uuid', {parts = {{field = 'uuid'}}, if_not_exists = true})
-    box.space.customer:create_index('group', {parts = {{field = 'group'}}, if_not_exists = true})
+    box.space.customer:create_index('group', {parts = {{field = 'group'}}, if_not_exists = true, unique = false})
 end
 
+-- data = {uuid = '123', name = 'Oleg', group = 'developer'}
+-- tuple = {'123', 'Oleg', 'developer'}
 local function flatten(format, data)
     local tuple = {}
     for _, field in ipairs(format) do

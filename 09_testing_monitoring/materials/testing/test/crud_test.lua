@@ -25,6 +25,12 @@ g.before_all(function()
     end)
 end)
 
+g.after_each(function()
+    g.server.net_box:eval([[
+        box.space.customer:truncate()
+    ]])
+end)
+
 g.after_all(function()
     g.server:stop()
 end)
@@ -42,4 +48,6 @@ function g.test_get()
     customer = g.server.net_box:call('get', {uuid})
     t.assert_not_equals(customer, nil)
     t.assert_equals(customer.uuid, uuid)
+    t.assert_equals(customer.name, 'Ivan')
+    t.assert_equals(customer.group, 'developer')
 end
