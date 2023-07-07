@@ -1,5 +1,3 @@
----
-
 - name: Configure machines
   gather_facts: false
   become: true
@@ -15,5 +13,5 @@
       copy:
         content: |
           Hi, I am here!
-        dest: '/tmp/hello.txt'
-        mode: '644'
+        dest: "/tmp/hello.txt"
+        mode: "644"
